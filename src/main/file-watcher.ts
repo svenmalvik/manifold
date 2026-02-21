@@ -1,7 +1,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { spawn } from 'node:child_process'
-import { FileTreeNode, FileChange, FileChangeType } from '../shared/types'
+import { FileTreeNode, FileChange, FileChangeType, ConflictFileStatus } from '../shared/types'
 import type { BrowserWindow } from 'electron'
 
 const POLL_INTERVAL_MS = 2000
@@ -10,6 +10,7 @@ interface PollEntry {
   timer: ReturnType<typeof setInterval>
   sessionId: string
   lastStatus: string
+  lastConflicts: string
   polling: boolean
 }
 
@@ -41,6 +42,7 @@ export class FileWatcher {
       timer: setInterval(() => this.poll(worktreePath), POLL_INTERVAL_MS),
       sessionId,
       lastStatus: '',
+      lastConflicts: '',
       polling: false,
     }
     this.polls.set(worktreePath, entry)
@@ -62,6 +64,16 @@ export class FileWatcher {
         this.sendToRenderer('files:changed', {
           sessionId: entry.sessionId,
           changes,
+        })
+      }
+
+      const conflicts = parseConflicts(status)
+      const conflictsKey = conflicts.map((c) => `${c.status}:${c.path}`).join('\n')
+      if (conflictsKey !== entry.lastConflicts) {
+        entry.lastConflicts = conflictsKey
+        this.sendToRenderer('agent:conflicts', {
+          sessionId: entry.sessionId,
+          conflicts,
         })
       }
     } catch {
@@ -167,6 +179,19 @@ function parseStatus(raw: string): FileChange[] {
     changes.push({ path: filePath, type })
   }
   return changes
+}
+
+function parseConflicts(raw: string): ConflictFileStatus[] {
+  const conflicts: ConflictFileStatus[] = []
+  for (const line of raw.split('\n')) {
+    if (line.length < 4) continue
+    const xy = line.substring(0, 2)
+    const filePath = line.substring(3)
+    if (xy === 'UU' || xy === 'AA' || xy === 'DD') {
+      conflicts.push({ path: filePath, status: xy as ConflictFileStatus['status'] })
+    }
+  }
+  return conflicts
 }
 
 const EXCLUDED_DIRS = new Set([

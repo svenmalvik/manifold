@@ -11,7 +11,8 @@ import { FileWatcher } from './file-watcher'
 import { DiffProvider } from './diff-provider'
 import { PrCreator } from './pr-creator'
 import { ViewStateStore } from './view-state-store'
-import { listRuntimes } from './runtimes'
+import { GitOperationsManager } from './git-operations-manager'
+import { listRuntimes, getRuntimeById } from './runtimes'
 import { generateBranchName } from './branch-namer'
 
 const execFileAsync = promisify(execFile)
@@ -24,6 +25,7 @@ export interface IpcDependencies {
   diffProvider: DiffProvider
   prCreator: PrCreator
   viewStateStore: ViewStateStore
+  gitOps: GitOperationsManager
 }
 
 export function registerIpcHandlers(deps: IpcDependencies): void {
@@ -35,6 +37,7 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   registerSettingsHandlers(deps)
   registerRuntimesHandler()
   registerViewStateHandlers(deps)
+  registerGitHandlers(deps)
 }
 
 function registerProjectHandlers(deps: IpcDependencies): void {
@@ -242,5 +245,54 @@ function registerViewStateHandlers(deps: IpcDependencies): void {
 
   ipcMain.handle('view-state:delete', (_event, sessionId: string) => {
     viewStateStore.delete(sessionId)
+  })
+}
+
+function registerGitHandlers(deps: IpcDependencies): void {
+  const { sessionManager, projectRegistry, gitOps } = deps
+
+  ipcMain.handle('git:commit', async (_event, params: { sessionId: string; message: string }) => {
+    const session = sessionManager.getSession(params.sessionId)
+    if (!session) throw new Error(`Session not found: ${params.sessionId}`)
+    await gitOps.commit(session.worktreePath, params.message)
+  })
+
+  ipcMain.handle('git:ai-generate', async (_event, params: { sessionId: string; prompt: string }) => {
+    const session = sessionManager.getSession(params.sessionId)
+    if (!session) throw new Error(`Session not found: ${params.sessionId}`)
+    const runtime = getRuntimeById(session.runtimeId)
+    if (!runtime) throw new Error(`Runtime not found: ${session.runtimeId}`)
+    return gitOps.aiGenerate(runtime.binary, params.prompt, session.worktreePath)
+  })
+
+  ipcMain.handle('git:ahead-behind', async (_event, params: { sessionId: string }) => {
+    const session = sessionManager.getSession(params.sessionId)
+    if (!session) throw new Error(`Session not found: ${params.sessionId}`)
+    const project = projectRegistry.getProject(session.projectId)
+    if (!project) throw new Error(`Project not found: ${session.projectId}`)
+    return gitOps.getAheadBehind(session.worktreePath, project.baseBranch)
+  })
+
+  ipcMain.handle(
+    'git:resolve-conflict',
+    async (_event, params: { sessionId: string; filePath: string; resolvedContent: string }) => {
+      const session = sessionManager.getSession(params.sessionId)
+      if (!session) throw new Error(`Session not found: ${params.sessionId}`)
+      await gitOps.resolveConflict(session.worktreePath, params.filePath, params.resolvedContent)
+    }
+  )
+
+  ipcMain.handle('git:complete-merge', async (_event, params: { sessionId: string }) => {
+    const session = sessionManager.getSession(params.sessionId)
+    if (!session) throw new Error(`Session not found: ${params.sessionId}`)
+    await gitOps.completeMerge(session.worktreePath)
+  })
+
+  ipcMain.handle('git:commit-log', async (_event, params: { sessionId: string }) => {
+    const session = sessionManager.getSession(params.sessionId)
+    if (!session) throw new Error(`Session not found: ${params.sessionId}`)
+    const project = projectRegistry.getProject(session.projectId)
+    if (!project) throw new Error(`Project not found: ${session.projectId}`)
+    return gitOps.getCommitLog(session.worktreePath, project.baseBranch)
   })
 }

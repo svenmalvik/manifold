@@ -1,5 +1,5 @@
 import React from 'react'
-import type { AgentSession, FileChange } from '../../shared/types'
+import type { AgentSession, FileChange, AheadBehind, ConflictFileStatus } from '../../shared/types'
 import type { PaneVisibility, PaneName } from '../hooks/usePaneResize'
 
 const PANE_LABELS: Record<PaneName, string> = {
@@ -17,6 +17,11 @@ interface StatusBarProps {
   baseBranch: string
   paneVisibility?: PaneVisibility
   onTogglePane?: (pane: PaneName) => void
+  conflicts?: ConflictFileStatus[]
+  aheadBehind?: AheadBehind
+  onOpenCommit?: () => void
+  onOpenPR?: () => void
+  onOpenConflicts?: () => void
 }
 
 export function StatusBar({
@@ -25,10 +30,19 @@ export function StatusBar({
   baseBranch,
   paneVisibility = ALL_VISIBLE,
   onTogglePane,
+  conflicts = [],
+  aheadBehind = { ahead: 0, behind: 0 },
+  onOpenCommit,
+  onOpenPR,
+  onOpenConflicts,
 }: StatusBarProps): React.JSX.Element {
   const hiddenPanes = (Object.keys(paneVisibility) as PaneName[]).filter(
     (pane) => !paneVisibility[pane]
   )
+
+  const hasConflicts = conflicts.length > 0
+  const hasChanges = changedFiles.length > 0 && !hasConflicts
+  const hasCommitsAhead = aheadBehind.ahead > 0
 
   return (
     <div className="layout-status-bar">
@@ -40,14 +54,30 @@ export function StatusBar({
               {activeSession.branchName}
             </span>
           </span>
-          <span style={barStyles.item}>
-            {changedFiles.length} file{changedFiles.length !== 1 ? 's' : ''} changed
-          </span>
+          {hasConflicts ? (
+            <button style={barStyles.conflictButton} onClick={onOpenConflicts}>
+              {'\u26A0'} Conflicts ({conflicts.length})
+            </button>
+          ) : (
+            <span style={barStyles.item}>
+              {changedFiles.length} file{changedFiles.length !== 1 ? 's' : ''} changed
+            </span>
+          )}
         </>
       ) : (
         <span style={barStyles.item}>No active agent</span>
       )}
       <span style={barStyles.spacer} />
+      {activeSession && hasChanges && onOpenCommit && (
+        <button style={barStyles.actionButton} onClick={onOpenCommit}>
+          Commit
+        </button>
+      )}
+      {activeSession && hasCommitsAhead && onOpenPR && (
+        <button style={barStyles.actionButton} onClick={onOpenPR}>
+          Create PR
+        </button>
+      )}
       {hiddenPanes.length > 0 && onTogglePane && (
         <span style={barStyles.toggleGroup}>
           {hiddenPanes.map((pane) => (
@@ -92,6 +122,28 @@ const barStyles: Record<string, React.CSSProperties> = {
     borderRadius: '3px',
     color: 'var(--accent)',
     background: 'rgba(79, 195, 247, 0.12)',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap' as const,
+  },
+  actionButton: {
+    fontSize: '10px',
+    padding: '1px 8px',
+    borderRadius: '3px',
+    fontWeight: 600,
+    color: '#fff',
+    background: 'var(--accent)',
+    border: 'none',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap' as const,
+  },
+  conflictButton: {
+    fontSize: '10px',
+    padding: '1px 8px',
+    borderRadius: '3px',
+    fontWeight: 600,
+    color: '#fff',
+    background: '#ff9800',
+    border: 'none',
     cursor: 'pointer',
     whiteSpace: 'nowrap' as const,
   },

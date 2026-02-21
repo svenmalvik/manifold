@@ -71,3 +71,19 @@ export interface CreatePROptions {
   title?: string
   body?: string
 }
+
+export interface AheadBehind {
+  ahead: number
+  behind: number
+}
+
+export interface ConflictFileStatus {
+  path: string
+  status: 'UU' | 'AA' | 'DD'
+}
+
+export interface GitStatusDetail {
+  conflicts: ConflictFileStatus[]
+  staged: string[]
+  unstaged: string[]
+}

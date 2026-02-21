@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import type { ITheme } from '@xterm/xterm'
-import type { SpawnAgentOptions, FileChange } from '../shared/types'
+import type { SpawnAgentOptions, FileChange, CreatePROptions } from '../shared/types'
 import { loadTheme, migrateLegacyTheme } from '../shared/themes/registry'
 import { applyThemeCssVars } from '../shared/themes/adapter'
 import { useProjects } from './hooks/useProjects'
@@ -13,12 +13,16 @@ import { useCodeView } from './hooks/useCodeView'
 import { useViewState } from './hooks/useViewState'
 import { useShellSessions } from './hooks/useShellSession'
 import { useAllProjectSessions } from './hooks/useAllProjectSessions'
+import { useGitOps } from './hooks/useGitOps'
 import { ProjectSidebar } from './components/ProjectSidebar'
 import { MainPanes } from './components/MainPanes'
 import { NewAgentPopover } from './components/NewAgentPopover'
 import { OnboardingView } from './components/OnboardingView'
 import { SettingsModal } from './components/SettingsModal'
 import { StatusBar } from './components/StatusBar'
+import { CommitPanel } from './components/CommitPanel'
+import { PRPanel } from './components/PRPanel'
+import { ConflictPanel } from './components/ConflictPanel'
 import { WelcomeDialog } from './components/WelcomeDialog'
 import { loader } from '@monaco-editor/react'
 
@@ -91,8 +95,17 @@ export function App(): React.JSX.Element {
   const projectShellCwd = activeProject?.path ?? null
   const { worktreeSessionId, projectSessionId } = useShellSessions(worktreeShellCwd, projectShellCwd)
 
+  const gitOps = useGitOps(activeSessionId)
+
+  // Refresh ahead/behind after file changes (which may indicate a commit happened)
+  const handleFilesChangedWithGit = useCallback(() => {
+    handleFilesChanged()
+    void gitOps.refreshAheadBehind()
+  }, [handleFilesChanged, gitOps.refreshAheadBehind])
+
   const [showNewAgent, setShowNewAgent] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [activePanel, setActivePanel] = useState<'commit' | 'pr' | 'conflicts' | null>(null)
 
   // ── Theme management ───────────────────────────────────────────────
   // Migrate legacy theme values and compute the theme ID
@@ -206,6 +219,23 @@ export function App(): React.JSX.Element {
     [updateSettings]
   )
 
+  const handleCreatePR = useCallback(
+    async (title: string, body: string): Promise<string> => {
+      if (!activeSessionId) throw new Error('No active session')
+      const options: CreatePROptions = { sessionId: activeSessionId, title, body }
+      return (await window.electronAPI.invoke('pr:create', options)) as string
+    },
+    [activeSessionId]
+  )
+
+  const handleCommitDone = useCallback(
+    async (message: string): Promise<void> => {
+      await gitOps.commit(message)
+      void refreshDiff()
+    },
+    [gitOps.commit, refreshDiff]
+  )
+
   const handleSetupComplete = useCallback(
     (storagePath: string): void => {
       void updateSettings({ storagePath, setupCompleted: true })
@@ -313,7 +343,53 @@ export function App(): React.JSX.Element {
           baseBranch={activeProject?.baseBranch ?? settings.defaultBaseBranch}
           paneVisibility={paneResize.paneVisibility}
           onTogglePane={paneResize.togglePane}
+          conflicts={gitOps.conflicts}
+          aheadBehind={gitOps.aheadBehind}
+          onOpenCommit={() => setActivePanel('commit')}
+          onOpenPR={() => setActivePanel('pr')}
+          onOpenConflicts={() => setActivePanel('conflicts')}
         />
+
+        {activePanel === 'commit' && activeSessionId && (
+          <div style={{ position: 'absolute', top: 0, right: 0, bottom: 24, width: 340, zIndex: 10 }}>
+            <CommitPanel
+              changedFiles={mergedChanges}
+              diff={diff}
+              onCommit={handleCommitDone}
+              onAiGenerate={gitOps.aiGenerate}
+              onClose={() => setActivePanel(null)}
+              committing={gitOps.committing}
+            />
+          </div>
+        )}
+
+        {activePanel === 'pr' && activeSessionId && activeSession && (
+          <div style={{ position: 'absolute', top: 0, right: 0, bottom: 24, width: 400, zIndex: 10 }}>
+            <PRPanel
+              branchName={activeSession.branchName}
+              diff={diff}
+              onAiGenerate={gitOps.aiGenerate}
+              onGetCommitLog={gitOps.getCommitLog}
+              onCreatePR={handleCreatePR}
+              onClose={() => setActivePanel(null)}
+              baseBranch={activeProject?.baseBranch ?? settings.defaultBaseBranch}
+            />
+          </div>
+        )}
+
+        {activePanel === 'conflicts' && activeSessionId && (
+          <div style={{ position: 'absolute', top: 0, right: 0, bottom: 24, width: 400, zIndex: 10 }}>
+            <ConflictPanel
+              conflicts={gitOps.conflicts}
+              sessionId={activeSessionId}
+              onAiGenerate={gitOps.aiGenerate}
+              onResolveConflict={gitOps.resolveConflict}
+              onCompleteMerge={gitOps.completeMerge}
+              onViewFile={handleSelectFile}
+              onClose={() => setActivePanel(null)}
+            />
+          </div>
+        )}
       </div>
 
       {activeProjectId && (
