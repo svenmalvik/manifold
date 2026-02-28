@@ -1,7 +1,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
-import type { SessionViewState } from '../shared/types'
+import type { SessionViewState } from '../../shared/types'
 
 const CONFIG_DIR = path.join(os.homedir(), '.manifold')
 const STATE_FILE = path.join(CONFIG_DIR, 'view-state.json')

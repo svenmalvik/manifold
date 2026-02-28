@@ -1,6 +1,6 @@
 import * as pty from 'node-pty'
 import { v4 as uuidv4 } from 'uuid'
-import { debugLog } from './debug-log'
+import { debugLog } from '../app/debug-log'
 
 export interface PtyHandle {
   id: string

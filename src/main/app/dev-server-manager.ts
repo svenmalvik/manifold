@@ -1,13 +1,13 @@
 import { v4 as uuidv4 } from 'uuid'
-import { PtyPool } from './pty-pool'
-import { ProjectRegistry } from './project-registry'
-import { getRuntimeById } from './runtimes'
-import { detectUrl } from './url-detector'
-import { gitExec } from './git-exec'
-import type { ChatAdapter } from './chat-adapter'
+import { PtyPool } from '../agent/pty-pool'
+import { ProjectRegistry } from '../store/project-registry'
+import { getRuntimeById } from '../agent/runtimes'
+import { detectUrl } from '../fs/url-detector'
+import { gitExec } from '../git/git-exec'
+import type { ChatAdapter } from '../agent/chat-adapter'
 import { debugLog } from './debug-log'
-import type { InternalSession } from './session-types'
-import type { SessionStreamWirer } from './session-stream-wirer'
+import type { InternalSession } from '../session/session-types'
+import type { SessionStreamWirer } from '../session/session-stream-wirer'
 
 export class DevServerManager {
   constructor(

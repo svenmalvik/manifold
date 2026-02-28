@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { FileChange, FileChangeType } from '../shared/types'
+import { FileChange, FileChangeType } from '../../shared/types'
 import { gitExec } from './git-exec'
 
 export class DiffProvider {

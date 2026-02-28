@@ -1,10 +1,10 @@
 import { v4 as uuidv4 } from 'uuid'
-import { WorktreeManager } from './worktree-manager'
-import { ProjectRegistry } from './project-registry'
-import type { FileWatcher } from './file-watcher'
-import { readWorktreeMeta } from './worktree-meta'
-import { gitExec } from './git-exec'
-import { debugLog } from './debug-log'
+import { WorktreeManager } from '../git/worktree-manager'
+import { ProjectRegistry } from '../store/project-registry'
+import type { FileWatcher } from '../fs/file-watcher'
+import { readWorktreeMeta } from '../git/worktree-meta'
+import { gitExec } from '../git/git-exec'
+import { debugLog } from '../app/debug-log'
 import type { InternalSession } from './session-types'
 
 export class SessionDiscovery {

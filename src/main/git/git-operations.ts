@@ -2,7 +2,7 @@ import { execFile, spawn } from 'node:child_process'
 import { writeFile } from 'node:fs/promises'
 import { join, resolve, normalize } from 'node:path'
 import { promisify } from 'node:util'
-import type { AheadBehind, FetchResult } from '../shared/types'
+import type { AheadBehind, FetchResult } from '../../shared/types'
 
 const execFileAsync = promisify(execFile)
 

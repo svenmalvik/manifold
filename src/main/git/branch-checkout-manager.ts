@@ -2,7 +2,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { spawn } from 'node:child_process'
 import { gitExec } from './git-exec'
-import type { BranchInfo, PRInfo } from '../shared/types'
+import type { BranchInfo, PRInfo } from '../../shared/types'
 
 function ghExec(args: string[], cwd: string): Promise<string> {
   return new Promise((resolve, reject) => {

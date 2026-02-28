@@ -1,7 +1,7 @@
 import { BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import { debugLog } from './debug-log'
-import type { SettingsStore } from './settings-store'
-import type { SessionManager } from './session-manager'
+import type { SettingsStore } from '../store/settings-store'
+import type { SessionManager } from '../session/session-manager'
 
 interface ModeSwitcherDeps {
   settingsStore: SettingsStore

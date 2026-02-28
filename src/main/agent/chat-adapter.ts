@@ -1,4 +1,4 @@
-import type { ChatMessage } from '../shared/simple-types'
+import type { ChatMessage } from '../../shared/simple-types'
 
 type MessageListener = (message: ChatMessage) => void
 

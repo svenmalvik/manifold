@@ -1,10 +1,10 @@
-import { PtyPool } from './pty-pool'
-import { detectStatus } from './status-detector'
-import { detectAddDir } from './add-dir-detector'
-import { detectUrl } from './url-detector'
-import type { ChatAdapter } from './chat-adapter'
-import type { FileWatcher } from './file-watcher'
-import { debugLog } from './debug-log'
+import { PtyPool } from '../agent/pty-pool'
+import { detectStatus } from '../agent/status-detector'
+import { detectAddDir } from '../fs/add-dir-detector'
+import { detectUrl } from '../fs/url-detector'
+import type { ChatAdapter } from '../agent/chat-adapter'
+import type { FileWatcher } from '../fs/file-watcher'
+import { debugLog } from '../app/debug-log'
 import type { InternalSession } from './session-types'
 
 export class SessionStreamWirer {

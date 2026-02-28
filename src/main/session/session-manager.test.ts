@@ -5,7 +5,7 @@ vi.mock('uuid', () => ({
   v4: vi.fn(() => `session-uuid-${++uuidCounter}`),
 }))
 
-vi.mock('./runtimes', () => ({
+vi.mock('../agent/runtimes', () => ({
   getRuntimeById: vi.fn((id: string) => {
     if (id === 'claude') {
       return {
@@ -20,11 +20,11 @@ vi.mock('./runtimes', () => ({
   }),
 }))
 
-vi.mock('./status-detector', () => ({
+vi.mock('../agent/status-detector', () => ({
   detectStatus: vi.fn(() => 'running'),
 }))
 
-vi.mock('./add-dir-detector', () => ({
+vi.mock('../fs/add-dir-detector', () => ({
   detectAddDir: vi.fn((output: string) => {
     const match = output.match(/Added\s+(.+?)\s+as a working directory/)
     return match ? match[1].replace(/\/+$/, '') : null
@@ -32,10 +32,10 @@ vi.mock('./add-dir-detector', () => ({
 }))
 
 import { SessionManager } from './session-manager'
-import { WorktreeManager } from './worktree-manager'
-import { PtyPool } from './pty-pool'
-import { ProjectRegistry } from './project-registry'
-import { getRuntimeById } from './runtimes'
+import { WorktreeManager } from '../git/worktree-manager'
+import { PtyPool } from '../agent/pty-pool'
+import { ProjectRegistry } from '../store/project-registry'
+import { getRuntimeById } from '../agent/runtimes'
 import type { BrowserWindow } from 'electron'
 
 function createMockWorktreeManager() {

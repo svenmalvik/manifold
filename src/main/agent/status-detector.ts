@@ -1,4 +1,4 @@
-import { AgentStatus } from '../shared/types'
+import { AgentStatus } from '../../shared/types'
 import { getRuntimeById } from './runtimes'
 
 interface StatusPattern {

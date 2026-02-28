@@ -1,8 +1,8 @@
-import { PtyPool } from './pty-pool'
-import { ProjectRegistry } from './project-registry'
-import { gitExec } from './git-exec'
-import { removeWorktreeMeta } from './worktree-meta'
-import { debugLog } from './debug-log'
+import { PtyPool } from '../agent/pty-pool'
+import { ProjectRegistry } from '../store/project-registry'
+import { gitExec } from '../git/git-exec'
+import { removeWorktreeMeta } from '../git/worktree-meta'
+import { debugLog } from '../app/debug-log'
 import type { InternalSession } from './session-types'
 
 export class SessionTeardown {

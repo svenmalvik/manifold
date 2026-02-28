@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { AgentRuntime } from '../shared/types'
+import { AgentRuntime } from '../../shared/types'
 
 export const BUILT_IN_RUNTIMES: readonly AgentRuntime[] = [
   {

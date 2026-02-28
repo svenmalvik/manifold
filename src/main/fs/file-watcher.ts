@@ -1,7 +1,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { spawn } from 'node:child_process'
-import { FileTreeNode, FileChange, FileChangeType } from '../shared/types'
+import { FileTreeNode, FileChange, FileChangeType } from '../../shared/types'
 import type { BrowserWindow } from 'electron'
 
 const POLL_INTERVAL_MS = 2000

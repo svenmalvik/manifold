@@ -1,4 +1,4 @@
-import type { AgentSession } from '../shared/types'
+import type { AgentSession } from '../../shared/types'
 
 export interface InternalSession extends AgentSession {
   ptyId: string

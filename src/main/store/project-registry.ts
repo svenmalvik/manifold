@@ -2,8 +2,8 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
 import { v4 as uuidv4 } from 'uuid'
-import { Project } from '../shared/types'
-import { gitExec } from './git-exec'
+import { Project } from '../../shared/types'
+import { gitExec } from '../git/git-exec'
 
 const CONFIG_DIR = path.join(os.homedir(), '.manifold')
 const PROJECTS_FILE = path.join(CONFIG_DIR, 'projects.json')
