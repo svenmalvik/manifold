@@ -6,12 +6,11 @@ import { BranchCheckoutManager } from './branch-checkout-manager'
 import { PtyPool } from './pty-pool'
 import { ProjectRegistry } from './project-registry'
 import { DevServerManager } from './dev-server-manager'
-import { writeWorktreeMeta, readWorktreeMeta, removeWorktreeMeta } from './worktree-meta'
+import { SessionCreator } from './session-creator'
+import { SessionTeardown } from './session-teardown'
+import { writeWorktreeMeta, readWorktreeMeta } from './worktree-meta'
 import { FileWatcher } from './file-watcher'
-import { gitExec } from './git-exec'
-import { generateBranchName } from './branch-namer'
 import type { ChatAdapter } from './chat-adapter'
-import { debugLog } from './debug-log'
 import type { BrowserWindow } from 'electron'
 import type { InternalSession } from './session-types'
 import { SessionStreamWirer } from './session-stream-wirer'
@@ -25,6 +24,8 @@ export class SessionManager {
   private streamWirer: SessionStreamWirer
   private devServer: DevServerManager
   private discovery: SessionDiscovery
+  private sessionCreator: SessionCreator
+  private teardown: SessionTeardown
 
   constructor(
     private worktreeManager: WorktreeManager,
@@ -55,6 +56,20 @@ export class SessionManager {
       this.projectRegistry,
       this.fileWatcher,
     )
+    this.sessionCreator = new SessionCreator(
+      this.worktreeManager,
+      this.ptyPool,
+      this.projectRegistry,
+      this.streamWirer,
+      () => this.chatAdapter,
+      this.branchCheckoutManager,
+    )
+    this.teardown = new SessionTeardown(
+      this.sessions,
+      this.ptyPool,
+      this.projectRegistry,
+      (id) => this.killSession(id),
+    )
   }
 
   setChatAdapter(adapter: ChatAdapter): void {
@@ -72,15 +87,7 @@ export class SessionManager {
   }
 
   async createSession(options: SpawnAgentOptions): Promise<AgentSession> {
-    const project = this.resolveProject(options.projectId)
-    const runtime = this.resolveRuntime(options.runtimeId)
-
-    let worktree: { branch: string; path: string }
-
     if (options.noWorktree) {
-      await this.assertCleanWorkingTree(project.path)
-
-      // Only one no-worktree session per project
       const existingNoWorktree = Array.from(this.sessions.values()).find(
         (s) => s.noWorktree && s.projectId === options.projectId
       )
@@ -90,140 +97,11 @@ export class SessionManager {
           'Only one no-worktree agent can run at a time per project.'
         )
       }
-
-      // No-worktree mode: checkout branch directly in project directory
-      if (options.existingBranch) {
-        await gitExec(['checkout', options.existingBranch], project.path)
-        worktree = { branch: options.existingBranch, path: project.path }
-      } else if (options.prIdentifier && this.branchCheckoutManager) {
-        const branch = await this.branchCheckoutManager.fetchPRBranch(
-          project.path,
-          options.prIdentifier
-        )
-        await gitExec(['checkout', branch], project.path)
-        worktree = { branch, path: project.path }
-      } else {
-        // Create new branch from current HEAD
-        const branch = options.branchName ?? (await generateBranchName(project.path, options.prompt ?? ''))
-        await gitExec(['checkout', '-b', branch], project.path)
-        worktree = { branch, path: project.path }
-      }
-    } else if (options.prIdentifier && this.branchCheckoutManager) {
-      const branch = await this.branchCheckoutManager.fetchPRBranch(
-        project.path,
-        options.prIdentifier
-      )
-      worktree = await this.branchCheckoutManager.createWorktreeFromBranch(
-        project.path,
-        branch,
-        project.name
-      )
-    } else if (options.existingBranch && this.branchCheckoutManager) {
-      worktree = await this.branchCheckoutManager.createWorktreeFromBranch(
-        project.path,
-        options.existingBranch,
-        project.name
-      )
-    } else {
-      worktree = await this.worktreeManager.createWorktree(
-        project.path,
-        project.baseBranch,
-        project.name,
-        options.branchName,
-        options.prompt
-      )
     }
 
-    const runtimeArgs = [...(runtime.args ?? [])]
-    if (options.ollamaModel) {
-      runtimeArgs.push('--model', options.ollamaModel)
-    }
-    if (options.nonInteractive && options.prompt) {
-      // Print mode with streaming JSON: pass the prompt as a CLI argument.
-      // --output-format stream-json gives us incremental NDJSON output
-      // instead of buffering everything until exit.
-      // --verbose is required by Claude Code when using stream-json.
-      runtimeArgs.push('-p', options.prompt, '--output-format', 'stream-json', '--verbose')
-    }
-
-    debugLog(`[session] nonInteractive=${options.nonInteractive}, runtimeArgs=${JSON.stringify(runtimeArgs)}`)
-
-    const ptyHandle = this.ptyPool.spawn(runtime.binary, runtimeArgs, {
-      cwd: worktree.path,
-      env: runtime.env,
-      cols: options.cols,
-      rows: options.rows
-    })
-
-    const session = this.buildSession(options, worktree, ptyHandle)
+    const session = await this.sessionCreator.create(options)
     this.sessions.set(session.id, session)
-
-    if (options.nonInteractive) {
-      this.streamWirer.wireStreamJsonOutput(ptyHandle.id, session)
-      this.streamWirer.wirePrintModeInitialExitHandling(ptyHandle.id, session)
-      this.chatAdapter?.addUserMessage(session.id, options.userMessage || options.prompt)
-    } else {
-      this.streamWirer.wireOutputStreaming(ptyHandle.id, session)
-      this.streamWirer.wireExitHandling(ptyHandle.id, session)
-    }
-
-    // Persist runtime and task description so they survive app restarts.
-    // Skip for no-worktree sessions — meta files are keyed by worktree path,
-    // and writing one next to the project root would pollute the filesystem.
-    if (!options.noWorktree) {
-      writeWorktreeMeta(worktree.path, {
-        runtimeId: options.runtimeId,
-        taskDescription: options.prompt || undefined,
-        ollamaModel: options.ollamaModel,
-      }).catch(() => {})
-    }
-
     return this.toPublicSession(session)
-  }
-
-  private async assertCleanWorkingTree(projectPath: string): Promise<void> {
-    const status = await gitExec(['status', '--porcelain'], projectPath)
-    if (status.trim().length > 0) {
-      throw new Error(
-        'Cannot switch branches: your working tree has uncommitted changes. ' +
-        'Please commit or stash them before starting a no-worktree agent.'
-      )
-    }
-  }
-
-  private resolveProject(projectId: string): { name: string; path: string; baseBranch: string } {
-    const project = this.projectRegistry.getProject(projectId)
-    if (!project) throw new Error(`Project not found: ${projectId}`)
-    return project
-  }
-
-  private resolveRuntime(runtimeId: string): { binary: string; args?: string[]; env?: Record<string, string> } {
-    const runtime = getRuntimeById(runtimeId)
-    if (!runtime) throw new Error(`Runtime not found: ${runtimeId}`)
-    return runtime
-  }
-
-  private buildSession(
-    options: SpawnAgentOptions,
-    worktree: { branch: string; path: string },
-    ptyHandle: { id: string; pid: number }
-  ): InternalSession {
-    return {
-      id: uuidv4(),
-      projectId: options.projectId,
-      runtimeId: options.runtimeId,
-      branchName: worktree.branch,
-      worktreePath: worktree.path,
-      status: 'running',
-      pid: ptyHandle.pid,
-      ptyId: ptyHandle.id,
-      outputBuffer: '',
-      taskDescription: options.prompt || undefined,
-      ollamaModel: options.ollamaModel,
-      additionalDirs: [],
-      noWorktree: options.noWorktree,
-      nonInteractive: options.nonInteractive,
-    }
   }
 
   hasSession(sessionId: string): boolean {
@@ -306,7 +184,8 @@ export class SessionManager {
       }
     }
 
-    const runtime = this.resolveRuntime(runtimeId)
+    const runtime = getRuntimeById(runtimeId)
+    if (!runtime) throw new Error(`Runtime not found: ${runtimeId}`)
 
     const runtimeArgs = [...(runtime.args ?? [])]
     if (session.ollamaModel) {
@@ -366,105 +245,11 @@ export class SessionManager {
   }
 
   async killNonInteractiveSessions(projectId: string): Promise<{ killedIds: string[]; branchName?: string }> {
-    const toKill = Array.from(this.sessions.values())
-      .filter(s => s.projectId === projectId && s.nonInteractive)
-    const killedIds: string[] = []
-    let branchName: string | undefined
-
-    for (const session of toKill) {
-      branchName = session.branchName
-
-      // Stop running processes so file system is stable before committing
-      if (session.ptyId) {
-        try { this.ptyPool.kill(session.ptyId) } catch { /* already exited */ }
-        session.ptyId = ''
-      }
-      if (session.devServerPtyId) {
-        try { this.ptyPool.kill(session.devServerPtyId) } catch { /* already exited */ }
-        session.devServerPtyId = undefined
-      }
-
-      // Commit any uncommitted work so it survives the mode switch
-      try {
-        const status = await gitExec(['status', '--porcelain'], session.worktreePath)
-        if (status.trim().length > 0) {
-          await gitExec(['add', '-A'], session.worktreePath)
-          await gitExec(['commit', '-m', 'Auto-commit: work from simple mode'], session.worktreePath)
-          debugLog(`[session] auto-committed changes on branch ${branchName}`)
-        }
-      } catch (err) {
-        debugLog(`[session] auto-commit failed: ${err}`)
-      }
-
-      await this.killSession(session.id)
-      killedIds.push(session.id)
-    }
-
-    // Switch project directory back to base branch so new worktrees can be created
-    if (branchName) {
-      const project = this.projectRegistry.getProject(projectId)
-      if (project) {
-        try {
-          await gitExec(['checkout', project.baseBranch], project.path)
-          debugLog(`[session] switched project back to ${project.baseBranch}`)
-        } catch (err) {
-          debugLog(`[session] checkout base branch failed: ${err}`)
-        }
-      }
-    }
-
-    return { killedIds, branchName }
+    return this.teardown.killNonInteractiveSessions(projectId)
   }
 
   async killInteractiveSession(sessionId: string): Promise<{ projectPath: string; branchName: string; taskDescription?: string }> {
-    const session = this.sessions.get(sessionId)
-    if (!session) throw new Error(`Session not found: ${sessionId}`)
-
-    const branchName = session.branchName
-    const taskDescription = session.taskDescription
-    const worktreePath = session.worktreePath
-    const projectId = session.projectId
-
-    // Stop running processes so file system is stable before committing
-    if (session.ptyId) {
-      try { this.ptyPool.kill(session.ptyId) } catch { /* already exited */ }
-      session.ptyId = ''
-    }
-    if (session.devServerPtyId) {
-      try { this.ptyPool.kill(session.devServerPtyId) } catch { /* already exited */ }
-      session.devServerPtyId = undefined
-    }
-
-    // Commit any uncommitted work so it survives the mode switch
-    try {
-      const status = await gitExec(['status', '--porcelain'], worktreePath)
-      if (status.trim().length > 0) {
-        await gitExec(['add', '-A'], worktreePath)
-        await gitExec(['commit', '-m', 'Auto-commit: work from developer mode'], worktreePath)
-        debugLog(`[session] auto-committed changes on branch ${branchName}`)
-      }
-    } catch (err) {
-      debugLog(`[session] auto-commit failed: ${err}`)
-    }
-
-    // Remove the worktree but keep the branch alive — the dev server session
-    // that follows will check out this branch in the project directory.
-    if (!session.noWorktree) {
-      try {
-        await gitExec(['worktree', 'remove', worktreePath, '--force'], this.projectRegistry.getProject(projectId)?.path ?? '')
-        await removeWorktreeMeta(worktreePath)
-      } catch {
-        // Best-effort cleanup
-      }
-      session.noWorktree = true
-    }
-
-    await this.killSession(sessionId)
-
-    const project = this.projectRegistry.getProject(projectId)
-    if (!project) throw new Error(`Project not found: ${projectId}`)
-
-    return { projectPath: project.path, branchName, taskDescription }
+    return this.teardown.killInteractiveSession(sessionId)
   }
 
   async startDevServerSession(projectId: string, branchName: string, taskDescription?: string): Promise<{ sessionId: string }> {
