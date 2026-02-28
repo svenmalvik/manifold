@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import type { ThemeMeta } from '../../shared/themes/types'
-import { getThemeList, loadTheme } from '../../shared/themes/registry'
-import { applyThemeCssVars } from '../../shared/themes/adapter'
+import type { ThemeMeta } from '../../../shared/themes/types'
+import { getThemeList, loadTheme } from '../../../shared/themes/registry'
+import { applyThemeCssVars } from '../../../shared/themes/adapter'
 import { loader } from '@monaco-editor/react'
 import { pickerStyles } from './ThemePicker.styles'
 

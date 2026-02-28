@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import type { FileChange } from '../../shared/types'
+import type { FileChange } from '../../../shared/types'
 
 interface CommitPanelProps {
   changedFiles: FileChange[]

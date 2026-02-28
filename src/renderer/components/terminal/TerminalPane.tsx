@@ -1,6 +1,6 @@
 import React from 'react'
 import type { ITheme } from '@xterm/xterm'
-import { useTerminal } from '../hooks/useTerminal'
+import { useTerminal } from '../../hooks/useTerminal'
 
 interface TerminalPaneProps {
   sessionId: string | null

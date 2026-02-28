@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react'
-import type { FileTreeNode, FileChangeType } from '../../shared/types'
+import type { FileTreeNode, FileChangeType } from '../../../shared/types'
 import { getFileIconSvg } from './file-icons'
 import { CHANGE_INDICATORS, treeStyles } from './FileTree.styles'
 

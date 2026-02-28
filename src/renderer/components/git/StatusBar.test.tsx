@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import React from 'react'
 import { StatusBar } from './StatusBar'
-import type { AgentSession, FileChange } from '../../shared/types'
-import type { UseDockLayoutResult } from '../hooks/useDockLayout'
+import type { AgentSession, FileChange } from '../../../shared/types'
+import type { UseDockLayoutResult } from '../../hooks/useDockLayout'
 
 const sampleSession: AgentSession = {
   id: 's1',

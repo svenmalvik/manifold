@@ -1,5 +1,5 @@
 import React from 'react'
-import type { Project } from '../../shared/types'
+import type { Project } from '../../../shared/types'
 
 interface ProjectSettingsPopoverProps {
   project: Project

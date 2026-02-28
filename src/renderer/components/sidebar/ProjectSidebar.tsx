@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react'
-import type { Project, AgentSession } from '../../shared/types'
+import type { Project, AgentSession } from '../../../shared/types'
 import { sidebarStyles } from './ProjectSidebar.styles'
 import { AgentItem } from './AgentItem'
 import { ProjectSettingsPopover } from './ProjectSettingsPopover'

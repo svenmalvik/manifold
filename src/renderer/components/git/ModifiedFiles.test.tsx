@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import React from 'react'
 import { ModifiedFiles } from './ModifiedFiles'
-import type { FileChange } from '../../shared/types'
+import type { FileChange } from '../../../shared/types'
 
 describe('ModifiedFiles', () => {
   const mockOnSelectFile = vi.fn()

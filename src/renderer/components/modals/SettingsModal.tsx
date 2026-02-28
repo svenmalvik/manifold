@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import type { ManifoldSettings } from '../../shared/types'
-import { getThemeList } from '../../shared/themes/registry'
+import type { ManifoldSettings } from '../../../shared/types'
+import { getThemeList } from '../../../shared/themes/registry'
 import { ThemePicker } from './ThemePicker'
 import { modalStyles } from './SettingsModal.styles'
 

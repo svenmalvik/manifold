@@ -1,15 +1,15 @@
 import React, { createContext, useCallback, useContext, useMemo } from 'react'
 import type { ITheme } from '@xterm/xterm'
-import type { AgentStatus, FileTreeNode, FileChange, Project, AgentSession, SpawnAgentOptions } from '../../shared/types'
-import type { OpenFile } from '../hooks/useCodeView'
-import { TerminalPane } from './TerminalPane'
+import type { AgentStatus, FileTreeNode, FileChange, Project, AgentSession, SpawnAgentOptions } from '../../../shared/types'
+import type { OpenFile } from '../../hooks/useCodeView'
+import { TerminalPane } from '../terminal/TerminalPane'
 import { CodeViewer } from './CodeViewer'
 import { FileTree } from './FileTree'
-import { ModifiedFiles } from './ModifiedFiles'
-import { ShellTabs } from './ShellTabs'
-import { OnboardingView } from './OnboardingView'
-import { ProjectSidebar } from './ProjectSidebar'
-import { WebPreview } from './WebPreview'
+import { ModifiedFiles } from '../git/ModifiedFiles'
+import { ShellTabs } from '../terminal/ShellTabs'
+import { OnboardingView } from '../modals/OnboardingView'
+import { ProjectSidebar } from '../sidebar/ProjectSidebar'
+import { WebPreview } from '../terminal/WebPreview'
 
 export interface DockAppState {
   sessionId: string | null

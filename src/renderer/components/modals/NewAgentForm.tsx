@@ -1,8 +1,8 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react'
-import type { SpawnAgentOptions, AgentRuntime, BranchInfo, PRInfo } from '../../shared/types'
+import type { SpawnAgentOptions, AgentRuntime, BranchInfo, PRInfo } from '../../../shared/types'
 import { modalStyles } from './NewTaskModal.styles'
-import { TaskDescriptionField, AgentDropdown, BranchPicker, PRPicker } from './new-task'
-import type { ExistingSubTab } from './new-task'
+import { TaskDescriptionField, AgentDropdown, BranchPicker, PRPicker } from '../new-task'
+import type { ExistingSubTab } from '../new-task'
 
 export function NewAgentForm({
   projectId,

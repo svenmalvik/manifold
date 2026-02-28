@@ -3,7 +3,7 @@ import Editor, { DiffEditor, type OnMount, type DiffOnMount } from '@monaco-edit
 import type { editor as monacoEditor } from 'monaco-editor'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { OpenFile } from '../hooks/useCodeView'
+import type { OpenFile } from '../../hooks/useCodeView'
 import { viewerStyles } from './CodeViewer.styles'
 import { extensionToLanguage, isMarkdownFile, isHtmlFile, fileName } from './code-viewer-utils'
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import React from 'react'
 import { ProjectSidebar } from './ProjectSidebar'
-import type { Project, AgentSession } from '../../shared/types'
+import type { Project, AgentSession } from '../../../shared/types'
 
 const mockInvoke = vi.fn()
 

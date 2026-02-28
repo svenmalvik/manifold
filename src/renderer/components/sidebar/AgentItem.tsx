@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react'
-import type { AgentSession } from '../../shared/types'
+import type { AgentSession } from '../../../shared/types'
 import { sidebarStyles } from './ProjectSidebar.styles'
 
 const RUNTIME_LABELS: Record<string, string> = {

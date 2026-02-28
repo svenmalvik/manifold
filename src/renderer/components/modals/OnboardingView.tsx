@@ -1,7 +1,7 @@
 import React from 'react'
-import type { SpawnAgentOptions } from '../../shared/types'
+import type { SpawnAgentOptions } from '../../../shared/types'
 import { NewAgentForm } from './NewAgentForm'
-import { NoProjectActions } from './NoProjectActions'
+import { NoProjectActions } from '../sidebar/NoProjectActions'
 
 const LOGO = `  .--.      __  ___            _ ____      __    __
  / oo \\    /  |/  /___ _____  (_) __/___  / /___/ /

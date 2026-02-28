@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import type { FileChange, FileChangeType } from '../../shared/types'
+import type { FileChange, FileChangeType } from '../../../shared/types'
 
 interface ModifiedFilesProps {
   changes: FileChange[]

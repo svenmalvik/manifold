@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import type { SpawnAgentOptions, AgentRuntime } from '../../shared/types'
+import type { SpawnAgentOptions, AgentRuntime } from '../../../shared/types'
 import { popoverStyles } from './NewAgentPopover.styles'
 
 interface NewAgentPopoverProps {

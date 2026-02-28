@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import type { FileTreeNode, FileChange, FileChangeType } from '../../shared/types'
+import type { FileTreeNode, FileChange, FileChangeType } from '../../../shared/types'
 import { TreeNode } from './tree-node'
 import { treeStyles } from './FileTree.styles'
 
